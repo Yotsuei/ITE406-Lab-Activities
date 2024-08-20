@@ -1,1 +1,1 @@
-# ITE406-Lab01-Text_Mining_Application
+# ITE406 : Lab 01 - Text Mining Application
