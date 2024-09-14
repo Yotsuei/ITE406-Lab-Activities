@@ -4,6 +4,7 @@ from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import datetime
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
+import tkinter.messagebox as messagebox  # Add this import
 
 # Download NLTK resources
 nltk.download('punkt')
@@ -20,7 +21,14 @@ def add_book(title, author, genre):
     books_df = pd.concat([books_df, new_book], ignore_index=True)
     reviews_dict[title] = []  # Initialize an empty review list for the book
     update_treeview_books()
-    output_text.set(f"Book '{title}' by {author} added successfully!")
+    
+    # Clear input fields
+    book_title_entry.delete(0, 'end')
+    book_author_entry.delete(0, 'end')
+    book_genre_entry.delete(0, 'end')
+    
+    # Show success message
+    messagebox.showinfo("Success", f"Book '{title}' by {author} added successfully!")
 
 # Function to search for books
 def search_books(query):
@@ -33,9 +41,12 @@ def search_books(query):
     
     if not results.empty:
         result_str = results.to_string(index=False)
-        output_text.set(f"Books matching '{query}':\n{result_str}")
+        messagebox.showinfo("Search Results", f"Books matching '{query}':\n{result_str}")
     else:
-        output_text.set(f"No books found for query: '{query}'")
+        messagebox.showinfo("No Results", f"No books found for query: '{query}'")
+    
+    # Clear search input
+    search_entry.delete(0, 'end')
 
 # Initialize the sentiment analyzer
 sid = SentimentIntensityAnalyzer()
@@ -52,9 +63,15 @@ def analyze_review_sentiment(book_title, review):
             result += "Overall Sentiment: Negative"
         else:
             result += "Overall Sentiment: Neutral"
-        output_text.set(result)
+        
+        # Clear input fields
+        review_book_title_entry.delete(0, 'end')
+        review_entry.delete(0, 'end')
+        
+        # Show result in a pop-up
+        messagebox.showinfo("Sentiment Analysis Result", result)
     else:
-        output_text.set(f"Book '{book_title}' does not exist.")
+        messagebox.showerror("Error", f"Book '{book_title}' does not exist.")
 
 # Function to add a borrower
 borrowers_df = pd.DataFrame(columns=["Borrower Name", "Book Title", "Borrow Date", "Due Date"])
@@ -77,11 +94,17 @@ def add_borrower(borrower_name, book_title):
             books_df.loc[books_df['Title'] == book_title, 'Availability'] = "Borrowed"
             update_treeview_borrowers()
             update_treeview_books()
-            output_text.set(f"'{book_title}' has been borrowed by {borrower_name}.")
+            
+            # Clear input fields
+            borrower_name_entry.delete(0, 'end')
+            borrow_book_entry.delete(0, 'end')
+            
+            # Show success message
+            messagebox.showinfo("Success", f"'{book_title}' has been borrowed by {borrower_name}.")
         else:
-            output_text.set(f"Sorry, '{book_title}' is currently not available.")
+            messagebox.showwarning("Not Available", f"Sorry, '{book_title}' is currently not available.")
     else:
-        output_text.set(f"Book '{book_title}' does not exist in the library.")
+        messagebox.showerror("Error", f"Book '{book_title}' does not exist in the library.")
 
 # Function to return a book
 def return_book(borrower_name, book_title):
@@ -92,7 +115,13 @@ def return_book(borrower_name, book_title):
     books_df.loc[books_df['Title'] == book_title, 'Availability'] = "Available"
     update_treeview_borrowers()
     update_treeview_books()
-    output_text.set(f"'{book_title}' has been returned by {borrower_name} and is now available.")
+    
+    # Clear input fields
+    return_borrower_name_entry.delete(0, 'end')
+    return_book_title_entry.delete(0, 'end')
+    
+    # Show success message
+    messagebox.showinfo("Success", f"'{book_title}' has been returned by {borrower_name} and is now available.")
 
 # ====================================================== Event Handlers =======================================================
 
