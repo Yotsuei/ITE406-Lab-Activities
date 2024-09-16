@@ -4,7 +4,8 @@ from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import datetime
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
-import tkinter.messagebox as messagebox  # Add this import
+import tkinter.messagebox as messagebox
+from nltk.tokenize import word_tokenize
 
 # Download NLTK resources
 nltk.download('punkt')
@@ -33,45 +34,65 @@ def add_book(title, author, genre):
 # Function to search for books
 def search_books(query):
     global books_df
-    results = books_df[
-        books_df['Title'].str.contains(query, case=False) |
-        books_df['Author'].str.contains(query, case=False) |
-        books_df['Genre'].str.contains(query, case=False)
-    ]
     
+    # Tokenize the query for better search matching
+    query_tokens = word_tokenize(query.lower())
+
+    # Function to tokenize and match against book fields (title, author, genre)
+    def is_match(row):
+        book_title_tokens = word_tokenize(row['Title'].lower())
+        book_author_tokens = word_tokenize(row['Author'].lower())
+        book_genre_tokens = word_tokenize(row['Genre'].lower())
+
+        # Check if any token in the query matches any token in the book fields
+        return any(token in book_title_tokens for token in query_tokens) or \
+               any(token in book_author_tokens for token in query_tokens) or \
+               any(token in book_genre_tokens for token in query_tokens)
+
+    # Apply the search function across the DataFrame
+    results = books_df[books_df.apply(is_match, axis=1)]
+
+    # Display results in a popup
     if not results.empty:
         result_str = results.to_string(index=False)
-        messagebox.showinfo("Search Results", f"Books matching '{query}':\n{result_str}")
+        messagebox.showinfo('Search Results', f"Books matching '{query}':\n{result_str}")
     else:
-        messagebox.showinfo("No Results", f"No books found for query: '{query}'")
-    
-    # Clear search input
-    search_entry.delete(0, 'end')
+        messagebox.showinfo('No Results', f"No books found for query: '{query}'")
 
 # Initialize the sentiment analyzer
 sid = SentimentIntensityAnalyzer()
 
-# Function to analyze review sentiment for a book
-def analyze_review_sentiment(book_title, review):
-    if book_title in reviews_dict:
-        reviews_dict[book_title].append(review)  # Add the review to the book's review list
-        sentiment_scores = sid.polarity_scores(review)
-        result = f"Review Sentiment Analysis for '{book_title}': {sentiment_scores}\n"
-        if sentiment_scores['compound'] >= 0.05:
-            result += "Overall Sentiment: Positive"
-        elif sentiment_scores['compound'] <= -0.05:
-            result += "Overall Sentiment: Negative"
-        else:
-            result += "Overall Sentiment: Neutral"
-        
-        # Clear input fields
-        review_book_title_entry.delete(0, 'end')
-        review_entry.delete(0, 'end')
-        
-        # Show result in a pop-up
-        messagebox.showinfo("Sentiment Analysis Result", result)
+# Function to analyze sentiment of user reviews
+def analyze_sentiment(review):
+    # Get sentiment scores for the review
+    sentiment_scores = sid.polarity_scores(review)
+    
+    # Compound score gives an overall sentiment polarity
+    compound = sentiment_scores['compound']
+
+    # Classify sentiment based on compound score
+    if compound >= 0.05:
+        return "Positive"
+    elif compound <= -0.05:
+        return "Negative"
     else:
-        messagebox.showerror("Error", f"Book '{book_title}' does not exist.")
+        return "Neutral"
+
+# Function to add review to the book
+def add_review(book_title, review):
+    global reviews_dict
+
+    # Analyze sentiment of the review
+    sentiment = analyze_sentiment(review)
+    
+    # Add the review and sentiment to the dictionary
+    if book_title in reviews_dict:
+        reviews_dict[book_title].append({"review": review, "sentiment": sentiment})
+    
+    messagebox.showinfo("Review Sentiment", f"Review added for {book_title} with a {sentiment} sentiment.")
+
+    # Clear input fields
+    review_entry.delete(0, 'end')
 
 # Function to add a borrower
 borrowers_df = pd.DataFrame(columns=["Borrower Name", "Book Title", "Borrow Date", "Due Date"])
@@ -130,7 +151,7 @@ def on_add_book():
 def on_search():
     search_books(search_entry.get())
 def on_analyze_sentiment():
-    analyze_review_sentiment(review_book_title_entry.get(), review_entry.get())
+    add_review(review_book_title_entry.get(), review_entry.get())
 def on_borrow_book():
     add_borrower(borrower_name_entry.get(), borrow_book_entry.get())
 def on_return_book():
