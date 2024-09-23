@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Error</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                padding: 20px;
+                max-width: 800px;
+                margin: 0 auto;
+            }
+            .error-message {
+                background-color: #ffcccc;
+                border: 1px solid #ff0000;
+                padding: 10px;
+                border-radius: 5px;
+                margin-bottom: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>An Error Occurred</h1>
+        <div class="error-message">
+            <p>{{ error }}</p>
+        </div>
+        <p>Please try again or contact the administrator if the problem persists.</p>
+        <a href="/">Go back to home page</a>
+    </body>
+</html>
