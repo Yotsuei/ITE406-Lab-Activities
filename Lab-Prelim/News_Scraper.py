@@ -95,6 +95,7 @@ def analyze():
     try:
         # Get article, preprocess, and analyze
         article_text = get_article_text(url)
+        # article_text = "Kansas City's Erik Thommy equalised to take the game to extra time, when Mexican defender Omar Campos and Sierra Leonean forward Kei Kamara scored to seal the win. For Giroud, who retired from France duty in July as the nation's record scorer with 57 goals, it was important after August's Leagues Cup final defeat by Columbus Crew."
         processed_text = preprocess_text(article_text)
         analysis = analyze_article(processed_text)
         summary = summarize_text(article_text)
