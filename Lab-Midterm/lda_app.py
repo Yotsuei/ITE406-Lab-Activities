@@ -1,6 +1,7 @@
-# pip install streamlit nltk spacy pandas newspaper3k gensim pyLDAvis matplotlib seaborn plotly
+# First, install the required packages
+# pip install nltk spacy pandas newspaper3k gensim pyLDAvis plotly streamlit pyngrok sumy
 
-import streamlit as st
+# Import necessary libraries
 import nltk
 import spacy
 import pandas as pd
@@ -13,6 +14,11 @@ import pyLDAvis.gensim_models as gensimvis
 import pyLDAvis
 import plotly.graph_objects as go
 import plotly.express as px
+import streamlit as st
+from pyngrok import ngrok
+from sumy.parsers.plaintext import PlaintextParser
+from sumy.nlp.tokenizers import Tokenizer
+from sumy.summarizers.lex_rank import LexRankSummarizer
 
 # Function to check and download NLTK data
 def download_nltk_data():
@@ -104,13 +110,35 @@ def plot_topic_prevalence(lda_model, corpus):
                       yaxis_tickformat='.2%')
     return fig
 
+def contextualize_topics(lda_model):
+    """Contextualizes the topics by providing a brief description and potential theme."""
+    contextualized_topics = []
+    for idx, topic in lda_model.print_topics(-1):
+        top_words = [word.split("*")[1].strip().strip('"') for word in topic.split("+")]
+        description = f"This topic is characterized by the words: {', '.join(top_words[:5])}."
+        theme = f"A possible theme for this topic could be related to {top_words[0]} and {top_words[1]}."
+        contextualized_topics.append({
+            "Topic": f"Topic {idx+1}",
+            "Description": description,
+            "Potential Theme": theme
+        })
+    return pd.DataFrame(contextualized_topics)
+
+def summarize_text(text, sentences_count=5):
+    """Summarizes the given text using the LexRank algorithm."""
+    parser = PlaintextParser.from_string(text, Tokenizer("english"))
+    summarizer = LexRankSummarizer()
+    summary = summarizer(parser.document, sentences_count=sentences_count)
+    return " ".join([str(sentence) for sentence in summary])
+
 def main():
     st.set_page_config(layout="wide")
-    st.title("Comprehensive LDA Topic Modeling and Visualization App")
+    st.title("Enhanced LDA Topic Modeling and Visualization App")
 
     st.sidebar.header("Input")
     url = st.sidebar.text_input("Enter the URL of a historical news article or event:")
     num_topics = st.sidebar.slider("Number of topics", min_value=2, max_value=10, value=5)
+    summary_sentences = st.sidebar.slider("Number of sentences in summary", min_value=1, max_value=10, value=5)
 
     if st.sidebar.button("Analyze"):
         with st.spinner("Analyzing the article..."):
@@ -124,14 +152,16 @@ def main():
             # Main content area
             st.header(f"Analysis Results for: {article_title}")
             
-            # Topics Extracted
-            st.subheader("1. Topics Extracted")
-            st.write("The LDA model has identified the following main topics in the article:")
-            topics_df = pd.DataFrame(columns=["Top Words"])
-            for idx, topic in lda_model.print_topics(-1):
-                topic_words = ", ".join([word.split("*")[1].strip().strip('"') for word in topic.split("+")])
-                topics_df.loc[f"Topic {idx+1}"] = topic_words
-            st.table(topics_df)
+            # Article Summary
+            st.subheader("Article Summary")
+            summary = summarize_text(article_text, sentences_count=summary_sentences)
+            st.write(summary)
+            
+            # Topics Extracted and Contextualized
+            st.subheader("1. Topics Extracted and Contextualized")
+            st.write("The LDA model has identified and contextualized the following main topics in the article:")
+            contextualized_topics = contextualize_topics(lda_model)
+            st.table(contextualized_topics)
             
             # Topic Prevalence
             st.subheader("2. Topic Prevalence")
@@ -154,10 +184,11 @@ def main():
             # Interpretation Guide
             with st.expander("How to Interpret These Results"):
                 st.write("""
-                1. **Topics Extracted**: Each topic is represented by a set of words. Words with higher weights (not shown) contribute more to the topic.
-                2. **Topic Prevalence**: This shows how much each topic contributes to the overall document. Higher bars indicate more prevalent topics.
-                3. **Word Distribution**: The heatmap shows which words are important to which topics. Darker cells indicate stronger associations.
-                4. **Interactive Visualization**: This plot allows you to explore the relationships between topics and terms in more detail.
+                1. **Article Summary**: This provides a concise overview of the main points in the article.
+                2. **Topics Extracted and Contextualized**: Each topic is represented by a set of words, along with a brief description and potential theme.
+                3. **Topic Prevalence**: This shows how much each topic contributes to the overall document. Higher bars indicate more prevalent topics.
+                4. **Word Distribution**: The heatmap shows which words are important to which topics. Darker cells indicate stronger associations.
+                5. **Interactive Visualization**: This plot allows you to explore the relationships between topics and terms in more detail.
                    - The left panel shows the topics as circles. Size indicates prevalence.
                    - The right panel shows the top terms for the selected topic.
                    - You can adjust the λ value to change the relevance metric for terms.
